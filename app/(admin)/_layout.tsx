@@ -1,17 +1,29 @@
 import { Stack, router } from "expo-router";
 import { useEffect } from "react";
 import { useAuth } from "../../store/AuthProvider";
-import { Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 
 export default function AdminLayout() {
   const { fbUser, profile, loading, logout } = useAuth();
 
   useEffect(() => {
-    if (!loading) {
-      if (!fbUser) router.replace("/(auth)/login");
-      else if (profile?.role !== "admin") router.replace("/(user)/dashboard");
+    if (loading) return;                       // wait for profile to resolve
+    if (!fbUser) {
+      router.replace("/(auth)/login");
+      return;
+    }
+    if (profile?.role !== "admin") {
+      router.replace("/(user)/dashboard");
     }
   }, [loading, fbUser, profile]);
+
+  if (loading || !fbUser || !profile) {
+    return (
+      <View style={{ flex:1, alignItems:"center", justifyContent:"center" }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <Stack

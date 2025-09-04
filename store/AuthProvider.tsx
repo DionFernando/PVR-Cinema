@@ -1,13 +1,22 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signOut,
+  User,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { auth } from "../lib/firebase";
 import type { AppUser } from "../lib/types";
-import { createUserProfile, getUserProfile } from "../lib/userService";
+import { createUserProfile } from "../lib/userService";
+import { db } from "../lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 type AuthCtx = {
   fbUser: User | null;
   profile: AppUser | null;
-  loading: boolean;
+  loading: boolean;              // now true until BOTH auth + profile are ready
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -21,17 +30,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    // auth state
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
       setFbUser(u);
-      if (u?.uid) {
-        const p = await getUserProfile(u.uid);
-        setProfile(p ?? null);
-      } else {
+      // when auth changes, (re)attach profile listener if logged in
+      if (!u) {
         setProfile(null);
+        setLoading(false); // no user -> done loading
+        return;
       }
-      setLoading(false);
+
+      setLoading(true); // user present, but profile not ready yet
+      const ref = doc(db, "users", u.uid);
+      const unsubProfile = onSnapshot(
+        ref,
+        (snap) => {
+          if (snap.exists()) {
+            setProfile(snap.data() as AppUser);
+          } else {
+            setProfile(null);
+          }
+          setLoading(false);
+        },
+        () => {
+          setProfile(null);
+          setLoading(false);
+        }
+      );
+
+      // cleanup when auth user changes
+      return () => unsubProfile();
     });
-    return () => unsub();
+
+    return () => unsubAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -43,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (name) {
       try { await updateProfile(cred.user, { displayName: name }); } catch {}
     }
-    // default role = user
     await createUserProfile({
       uid: cred.user.uid,
       email: cred.user.email || email.trim(),

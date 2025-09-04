@@ -1,28 +1,28 @@
-import { View, Text, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
+import { useEffect } from "react";
+import { View, ActivityIndicator, Text } from "react-native";
+import { router } from "expo-router";
+import { useAuth } from "../store/AuthProvider";
 
-export default function Home() {
+export default function Index() {
+  const { fbUser, profile, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading) return;              // wait for profile to load
+    if (!fbUser) {
+      router.replace("/(auth)/login");
+      return;
+    }
+    if (profile?.role === "admin") {
+      router.replace("/(admin)/movies");
+    } else {
+      router.replace("/(user)/dashboard");
+    }
+  }, [loading, fbUser, profile]);
+
   return (
-    <View style={{ flex:1, alignItems:"center", justifyContent:"center", gap:16, padding:16 }}>
-      <Text style={{ fontSize:18, fontWeight:"700" }}>PVR Cinemas — scaffold OK ✅</Text>
-
-      <Link href="/(user)/dashboard" asChild>
-        <TouchableOpacity style={{ padding:12, borderWidth:1, borderRadius:8 }}>
-          <Text>Open User Dashboard</Text>
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/(admin)/movies" asChild>
-        <TouchableOpacity style={{ padding:12, borderWidth:1, borderRadius:8 }}>
-          <Text>Open Admin · Movies</Text>
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/(admin)/showtimes" asChild>
-        <TouchableOpacity style={{ padding:12, borderWidth:1, borderRadius:8 }}>
-          <Text>Open Admin · Showtimes</Text>
-        </TouchableOpacity>
-      </Link>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <ActivityIndicator />
+      <Text style={{ marginTop: 8 }}>Loading…</Text>
     </View>
   );
 }

@@ -10,20 +10,18 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    try {
-      setLoading(true);
-      await login(email, password);
-      // small delay so profile can load
-      setTimeout(() => {
-        if (profile?.role === "admin") router.replace("/(admin)/movies");
-        else router.replace("/(user)/dashboard");
-      }, 300);
-    } catch (e: any) {
-      Alert.alert("Login failed", e?.message ?? "Invalid credentials");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    await login(email, password);
+    // Let app/index decide where to go (admin vs user)
+    router.replace("/");
+  } catch (e: any) {
+    Alert.alert("Login failed", e?.message ?? "Invalid credentials");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <KeyboardAvoidingView

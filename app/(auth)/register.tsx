@@ -11,21 +11,21 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Missing", "Please fill all fields");
-      return;
-    }
-    try {
-      setLoading(true);
-      await register(name, email, password);
-      Alert.alert("Welcome!", "Account created.");
-      router.replace("/(user)/dashboard");
-    } catch (e: any) {
-      Alert.alert("Register failed", e?.message ?? "Please try again");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!name || !email || !password) {
+    Alert.alert("Missing", "Please fill all fields");
+    return;
+  }
+  try {
+    setLoading(true);
+    await register(name, email, password);
+    // Go to index; it will route to user dashboard (role defaults to "user")
+    router.replace("/");
+  } catch (e: any) {
+    Alert.alert("Register failed", e?.message ?? "Please try again");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView
