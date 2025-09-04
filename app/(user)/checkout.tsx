@@ -3,13 +3,15 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView } fr
 import { useLocalSearchParams, router } from "expo-router";
 import { getMovie } from "../../lib/movieService";
 import { getShowtime } from "../../lib/showtimeService";
+import { getOrCreateUserId } from "../../lib/authUser";
+import { createBookingWithSeatLock } from "../../lib/bookingService";
 import type { Movie, Showtime } from "../../lib/types";
 
 export default function Checkout() {
   const { movieId, showtimeId, seatType, seats, count, total } = useLocalSearchParams<{
     movieId: string;
     showtimeId: string;
-    seatType: string;
+    seatType: "Classic" | "Prime" | "Superior" | string;
     seats: string; // JSON array
     count: string;
     total: string;
@@ -17,12 +19,10 @@ export default function Checkout() {
 
   const [movie, setMovie] = useState<Movie | null>(null);
   const [showtime, setShowtime] = useState<Showtime | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
   const parsedSeats = useMemo<string[]>(() => {
-    try {
-      return JSON.parse(String(seats || "[]"));
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(String(seats || "[]")); } catch { return []; }
   }, [seats]);
 
   useEffect(() => {
@@ -35,6 +35,34 @@ export default function Checkout() {
       setShowtime(st);
     })();
   }, [movieId, showtimeId]);
+
+  const canPay = !!(movie && showtime && parsedSeats.length && seatType && total);
+
+  const onPay = async () => {
+    if (!canPay) return;
+    try {
+      setSubmitting(true);
+
+      const uid = await getOrCreateUserId(); // <- no Firebase Auth required
+
+      await createBookingWithSeatLock({
+        userId: uid,
+        showtimeId: String(showtimeId),
+        movieId: String(movieId),
+        seats: parsedSeats,
+        seatType: seatType as any,
+        total: Number(total || "0"),
+      });
+
+      Alert.alert("Success", "Booking confirmed! 🎉", [
+        { text: "View Tickets", onPress: () => router.replace("/(user)/tickets") },
+      ]);
+    } catch (e: any) {
+      Alert.alert("Booking failed", e?.message ?? "Please reselect seats and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!movie || !showtime) {
     return (
@@ -61,18 +89,16 @@ export default function Checkout() {
       </View>
 
       <TouchableOpacity
-        onPress={() => {
-          // We will implement Firestore transaction + booking + email next.
-          Alert.alert("Mock Pay", "Payment success! (we'll wire bookings next)", [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(user)/tickets"),
-            },
-          ]);
+        disabled={!canPay || submitting}
+        onPress={onPay}
+        style={{
+          padding:14, borderRadius:10,
+          backgroundColor: !canPay || submitting ? "#aaa" : "#0a7"
         }}
-        style={{ padding:14, borderRadius:10, backgroundColor:"#0a7" }}
       >
-        <Text style={{ textAlign:"center", color:"#fff", fontWeight:"700" }}>Pay</Text>
+        <Text style={{ textAlign:"center", color:"#fff", fontWeight:"700" }}>
+          {submitting ? "Processing…" : "Pay"}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
