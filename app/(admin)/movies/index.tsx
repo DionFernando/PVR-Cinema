@@ -6,6 +6,7 @@ import { listMovies, removeMovie } from "../../../lib/movieService";
 import type { Movie } from "../../../lib/types";
 import { POSTER_FALLBACK } from "../../../lib/constants";
 import { toSafeImageUri } from "../../../utils/url";
+import { listShowtimesByMovie } from "../../../lib/showtimeService";
 
 export default function AdminMovies() {
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,11 @@ export default function AdminMovies() {
 
                   <TouchableOpacity
                     onPress={async () => {
+                      const sts = await listShowtimesByMovie(item.id);
+                      if (sts.length) {
+                        alert("Cannot delete: this movie has showtimes. Delete those first.");
+                        return;
+                      }
                       await removeMovie(item.id);
                       await load();
                     }}

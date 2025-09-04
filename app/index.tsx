@@ -7,11 +7,13 @@ export default function Index() {
   const { fbUser, profile, loading } = useAuth();
 
   useEffect(() => {
-    if (loading) return;              // wait for profile to load
+    if (loading) return;
+
     if (!fbUser) {
-      router.replace("/(auth)/login");
+      router.replace("/welcome");        // <— show Welcome first
       return;
     }
+
     if (profile?.role === "admin") {
       router.replace("/(admin)/movies");
     } else {

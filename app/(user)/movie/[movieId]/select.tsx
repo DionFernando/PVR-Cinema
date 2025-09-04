@@ -42,6 +42,16 @@ export default function SelectShowtime() {
     [showtimes, date, time]
   );
 
+  // below your showtimes state
+  const timesForDateObj = useMemo(() => {
+    const list = showtimes.filter(s => s.date === date);
+    return list.map(s => ({
+      time: s.startTime,
+      soldOut: (s.seatsReserved?.length || 0) >= 80, // 10x8
+    }));
+  }, [showtimes, date]);
+
+
   const proceed = () => {
     if (!movieId || !selectedShowtime) return;
     router.push({
@@ -97,25 +107,30 @@ export default function SelectShowtime() {
       <Text style={{ fontSize:20, fontWeight:"700", marginTop:8 }}>Select Time</Text>
 
       <View style={{ flexDirection:"row", flexWrap:"wrap", gap:8 }}>
-        {timesForDate.length ? timesForDate.map(t => {
+        {timesForDateObj.length ? timesForDateObj.map(({ time: t, soldOut }) => {
           const active = t === time;
           return (
             <TouchableOpacity
               key={t}
+              disabled={soldOut}
               onPress={() => setTime(t)}
               style={{
                 paddingVertical:10, paddingHorizontal:14, borderRadius:999,
                 borderWidth:1, borderColor: active ? "#111" : "#ccc",
-                backgroundColor: active ? "#111" : "transparent"
+                backgroundColor: active ? "#111" : soldOut ? "#eee" : "transparent",
+                opacity: soldOut ? 0.6 : 1
               }}
             >
-              <Text style={{ color: active ? "#fff" : "#111" }}>{t}</Text>
+              <Text style={{ color: active ? "#fff" : "#111" }}>
+                {t}{soldOut ? " (Sold out)" : ""}
+              </Text>
             </TouchableOpacity>
           );
         }) : (
           <Text style={{ color:"#666" }}>No times for this date.</Text>
         )}
       </View>
+
 
       <Text style={{ fontSize:20, fontWeight:"700", marginTop:8 }}>Select Seat Count</Text>
 

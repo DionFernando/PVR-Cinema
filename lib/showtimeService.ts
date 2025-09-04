@@ -20,13 +20,22 @@ const SHOWTIMES = "showtimes";
 export async function createShowtime(
   payload: Omit<Showtime, "id" | "createdAt" | "seatsReserved">
 ) {
-  const body = {
-    ...payload,
-    seatsReserved: [] as string[],
-    createdAt: serverTimestamp(),
-  };
+  // Duplicate guard
+  const dupQ = query(
+    collection(db, SHOWTIMES),
+    where("movieId", "==", payload.movieId),
+    where("date", "==", payload.date),
+    where("startTime", "==", payload.startTime)
+  );
+  const dupSnap = await getDocs(dupQ);
+  if (!dupSnap.empty) {
+    throw new Error("A showtime for this movie at the same date & time already exists.");
+  }
+
+  const body = { ...payload, seatsReserved: [] as string[], createdAt: serverTimestamp() };
   return addDoc(collection(db, SHOWTIMES), body);
 }
+
 
 /** List all showtimes (sorted in JS by date then time) */
 export async function listShowtimes(): Promise<Showtime[]> {
