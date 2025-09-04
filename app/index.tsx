@@ -3,7 +3,7 @@ import { Link } from "expo-router";
 
 export default function Home() {
   return (
-    <View style={{ flex:1, alignItems:"center", justifyContent:"center", gap:16 }}>
+    <View style={{ flex:1, alignItems:"center", justifyContent:"center", gap:16, padding:16 }}>
       <Text style={{ fontSize:18, fontWeight:"700" }}>PVR Cinemas — scaffold OK ✅</Text>
 
       <Link href="/(user)/dashboard" asChild>
@@ -15,6 +15,12 @@ export default function Home() {
       <Link href="/(admin)/movies" asChild>
         <TouchableOpacity style={{ padding:12, borderWidth:1, borderRadius:8 }}>
           <Text>Open Admin · Movies</Text>
+        </TouchableOpacity>
+      </Link>
+
+      <Link href="/(admin)/showtimes" asChild>
+        <TouchableOpacity style={{ padding:12, borderWidth:1, borderRadius:8 }}>
+          <Text>Open Admin · Showtimes</Text>
         </TouchableOpacity>
       </Link>
     </View>

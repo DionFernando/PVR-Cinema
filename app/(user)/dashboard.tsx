@@ -3,6 +3,7 @@ import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, TextI
 import { listMovies } from "../../lib/movieService";
 import type { Movie } from "../../lib/types";
 import { Link } from "expo-router";
+import { POSTER_FALLBACK } from "../../lib/constants";
 
 function isComingSoon(releaseMs: number) {
   const today = new Date(); today.setHours(0,0,0,0);
@@ -43,19 +44,35 @@ export default function Dashboard() {
     );
   }
 
-  const Card = ({ item }: { item: Movie }) => (
-    <View style={{ width:220, marginRight:12 }}>
-      <Image source={{ uri: item.posterUrl }} style={{ width:220, height:320, borderRadius:12, backgroundColor:"#eee" }} />
-      <Text style={{ fontWeight:"600", marginTop:8 }}>{item.title}</Text>
-      <Text numberOfLines={2} style={{ color:"#666", marginTop:4 }}>{item.description}</Text>
+  const Card = ({ item }: { item: Movie }) => {
+  const uri = item.posterUrl?.startsWith("http")
+    ? encodeURI(item.posterUrl)
+    : POSTER_FALLBACK;
+
+  return (
+    <View style={{ width: 220, marginRight: 12 }}>
+      <Image
+        source={{ uri }}
+        style={{ width: 220, height: 320, borderRadius: 12, backgroundColor: "#eee" }}
+        resizeMode="cover"
+        onError={() => {
+          // If it fails, swap to fallback
+          (item as any).posterUrl = POSTER_FALLBACK;
+        }}
+      />
+      <Text style={{ fontWeight: "600", marginTop: 8 }}>{item.title}</Text>
+      <Text numberOfLines={2} style={{ color: "#666", marginTop: 4 }}>
+        {item.description}
+      </Text>
       <Link
-        href={{ pathname:"/(user)/movie/[movieId]", params:{ movieId: item.id } }}
-        style={{ color:"dodgerblue", marginTop:6 }}
+        href={{ pathname: "/(user)/movie/[movieId]", params: { movieId: String(item.id) } }}
+        style={{ color: "dodgerblue", marginTop: 6 }}
       >
         Book Now →
       </Link>
     </View>
   );
+};
 
   return (
     <View style={{ flex:1, paddingVertical:16 }}>

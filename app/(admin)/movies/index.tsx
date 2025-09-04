@@ -4,6 +4,8 @@ import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from
 import { Link, router } from "expo-router";
 import { listMovies, removeMovie } from "../../../lib/movieService";
 import type { Movie } from "../../../lib/types";
+import { POSTER_FALLBACK } from "../../../lib/constants";
+import { toSafeImageUri } from "../../../utils/url";
 
 export default function AdminMovies() {
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,10 @@ export default function AdminMovies() {
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: "600" }}>Admin · Movies</Text>
 
+      <Link href="/(admin)/showtimes" style={{ color: "dodgerblue", marginTop: 4 }}>
+        ↳ Go to Showtimes
+      </Link>
+
       <Link href="/(admin)/movies/new" style={{ color: "dodgerblue", marginVertical: 8 }}>
         + New Movie
       </Link>
@@ -44,63 +50,68 @@ export default function AdminMovies() {
         data={movies}
         keyExtractor={(m) => m.id}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item }) => (
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 12,
-              alignItems: "center",
-              padding: 12,
-              borderWidth: 1,
-              borderColor: "#ddd",
-              borderRadius: 8,
-            }}
-          >
-            <Image
-              source={{ uri: item.posterUrl }}
-              style={{ width: 60, height: 90, borderRadius: 6, backgroundColor: "#eee" }}
-            />
+        renderItem={({ item }) => {
+          const uri = toSafeImageUri(item.posterUrl) || POSTER_FALLBACK;
 
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: "600" }}>{item.title}</Text>
-              <Text numberOfLines={2} style={{ color: "#555", marginTop: 4 }}>
-                {item.description}
-              </Text>
+          return (
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 12,
+                alignItems: "center",
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 8,
+              }}
+            >
+              <Image
+                source={{ uri }}
+                style={{ width: 60, height: 90, borderRadius: 6, backgroundColor: "#eee" }}
+                resizeMode="cover"
+              />
 
-              {/* Quick actions */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
-                <Link
-                  href={{
-                    pathname: "/(admin)/movies/[movieId]/edit",
-                    params: { movieId: String(item.id) },
-                  }}
-                  style={{ color: "dodgerblue" }}
-                >
-                  Edit
-                </Link>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: "600" }}>{item.title}</Text>
+                <Text numberOfLines={2} style={{ color: "#555", marginTop: 4 }}>
+                  {item.description}
+                </Text>
 
-                <Link
-                  href={{
-                    pathname: "/(admin)/showtimes/new",
-                    params: { movieId: String(item.id) },
-                  }}
-                  style={{ color: "dodgerblue" }}
-                >
-                  Add Showtime
-                </Link>
+                {/* Quick actions */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
+                  <Link
+                    href={{
+                      pathname: "/(admin)/movies/[movieId]/edit",
+                      params: { movieId: String(item.id) },
+                    }}
+                    style={{ color: "dodgerblue" }}
+                  >
+                    Edit
+                  </Link>
 
-                <TouchableOpacity
-                  onPress={async () => {
-                    await removeMovie(item.id);
-                    await load();
-                  }}
-                >
-                  <Text style={{ color: "crimson" }}>Delete</Text>
-                </TouchableOpacity>
+                  <Link
+                    href={{
+                      pathname: "/(admin)/showtimes/new",
+                      params: { movieId: String(item.id) },
+                    }}
+                    style={{ color: "dodgerblue" }}
+                  >
+                    Add Showtime
+                  </Link>
+
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await removeMovie(item.id);
+                      await load();
+                    }}
+                  >
+                    <Text style={{ color: "crimson" }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          );
+        }}
       />
     </View>
   );
