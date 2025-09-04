@@ -1,9 +1,4 @@
-import { View, Text } from "react-native";
-
-export default function Screen() {
-  return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>Screen placeholder</Text>
-    </View>
-  );
+import { Stack } from "expo-router";
+export default function AdminLayout() {
+  return <Stack />;
 }
