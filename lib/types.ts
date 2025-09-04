@@ -36,3 +36,11 @@ export type Booking = {
   status: "paid" | "cancelled";
   createdAt?: Timestamp | FieldValue;      // allow serverTimestamp()
 };
+
+export type AppUser = {
+  uid: string;
+  email: string;
+  name: string;
+  role: "user" | "admin";
+  createdAt?: Timestamp | FieldValue;
+};
