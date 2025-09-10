@@ -6,6 +6,8 @@ import { getShowtime } from "../../lib/showtimeService";
 import { getOrCreateUserId } from "../../lib/authUser";
 import { createBookingWithSeatLock } from "../../lib/bookingService";
 import type { Movie, Showtime } from "../../lib/types";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors, radius, spacing } from "../../lib/theme";
 
 export default function Checkout() {
   const { movieId, showtimeId, seatType, seats, count, total } = useLocalSearchParams<{
@@ -22,7 +24,11 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
 
   const parsedSeats = useMemo<string[]>(() => {
-    try { return JSON.parse(String(seats || "[]")); } catch { return []; }
+    try {
+      return JSON.parse(String(seats || "[]"));
+    } catch {
+      return [];
+    }
   }, [seats]);
 
   useEffect(() => {
@@ -43,7 +49,7 @@ export default function Checkout() {
     try {
       setSubmitting(true);
 
-      const uid = await getOrCreateUserId(); // <- no Firebase Auth required
+      const uid = await getOrCreateUserId();
 
       await createBookingWithSeatLock({
         userId: uid,
@@ -66,40 +72,55 @@ export default function Checkout() {
 
   if (!movie || !showtime) {
     return (
-      <View style={{ flex:1, alignItems:"center", justifyContent:"center" }}>
-        <ActivityIndicator />
-        <Text style={{ marginTop:8 }}>Preparing checkout…</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colors.accent} />
+          <Text style={{ marginTop: 8, color: colors.text }}>Preparing checkout…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding:16, gap:12 }}>
-      <Text style={{ fontSize:20, fontWeight:"700" }}>Checkout</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+        <Text style={{ fontSize: 20, fontWeight: "700", color: colors.text }}>Checkout</Text>
 
-      <View style={{ padding:12, borderWidth:1, borderColor:"#ddd", borderRadius:8 }}>
-        <Text style={{ fontWeight:"700" }}>{movie.title}</Text>
-        <Text style={{ color:"#555", marginTop:4 }}>
-          {showtime.date} · {showtime.startTime}
-        </Text>
-        <Text style={{ marginTop:8 }}>Seat type: {seatType}</Text>
-        <Text>Seats: {parsedSeats.join(", ")}</Text>
-        <Text>Seat count: {count}</Text>
-        <Text style={{ marginTop:6, fontWeight:"700" }}>Amount payable: {total}</Text>
-      </View>
+        <View
+          style={{
+            padding: spacing.md,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            backgroundColor: colors.card,
+          }}
+        >
+          <Text style={{ fontWeight: "700", color: colors.text }}>{movie.title}</Text>
+          <Text style={{ color: colors.textMuted, marginTop: 4 }}>
+            {showtime.date} · {showtime.startTime}
+          </Text>
+          <Text style={{ marginTop: 8, color: colors.text }}>Seat type: {seatType}</Text>
+          <Text style={{ color: colors.text }}>Seats: {parsedSeats.join(", ")}</Text>
+          <Text style={{ color: colors.text }}>Seat count: {count}</Text>
+          <Text style={{ marginTop: 6, fontWeight: "700", color: colors.accent }}>
+            Amount payable: {total}
+          </Text>
+        </View>
 
-      <TouchableOpacity
-        disabled={!canPay || submitting}
-        onPress={onPay}
-        style={{
-          padding:14, borderRadius:10,
-          backgroundColor: !canPay || submitting ? "#aaa" : "#0a7"
-        }}
-      >
-        <Text style={{ textAlign:"center", color:"#fff", fontWeight:"700" }}>
-          {submitting ? "Processing…" : "Pay"}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity
+          disabled={!canPay || submitting}
+          onPress={onPay}
+          style={{
+            padding: 14,
+            borderRadius: radius.md,
+            backgroundColor: !canPay || submitting ? "#666" : colors.success,
+          }}
+        >
+          <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>
+            {submitting ? "Processing…" : "Pay"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

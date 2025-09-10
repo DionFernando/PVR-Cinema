@@ -8,9 +8,12 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
 } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { listMovies } from "../../lib/movieService";
@@ -21,12 +24,10 @@ import { POSTER_FALLBACK } from "../../lib/constants";
 import { useAuth } from "../../store/AuthProvider";
 import { LOGO } from "../../lib/images";
 
-
 const GOLD = "#ffd000";
 
 function isComingSoon(releaseMs: number) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   return releaseMs > today.getTime();
 }
 function formatDate(d: Date) {
@@ -36,18 +37,17 @@ function formatDate(d: Date) {
   return `${y}-${m}-${day}`;
 }
 function daysUntil(d: Date) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(d);
-  end.setHours(0, 0, 0, 0);
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const end = new Date(d);  end.setHours(0, 0, 0, 0);
   return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export default function Dashboard() {
-  const { profile } = useAuth();
+  const { profile, logout } = useAuth(); // ← useAuth inside component
+
   const [loading, setLoading] = useState(true);
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [q, setQ] = useState("");
+  const [q,   setQ]   = useState("");
   const [tab, setTab] = useState<"all" | "now" | "soon">("all");
 
   useEffect(() => {
@@ -109,56 +109,22 @@ export default function Dashboard() {
         }}
       >
         <View style={{ position: "relative" }}>
-          <Image
-            source={{ uri }}
-            style={{ width: 220, height: 320, backgroundColor: "#1a1a1a" }}
-            resizeMode="cover"
-          />
-          <View
-            style={{
-              position: "absolute",
-              top: 8,
-              left: 8,
-              backgroundColor: badgeColor,
-              paddingVertical: 4,
-              paddingHorizontal: 8,
-              borderRadius: 8,
-            }}
-          >
+          <Image source={{ uri }} style={{ width: 220, height: 320, backgroundColor: "#1a1a1a" }} resizeMode="cover" />
+          <View style={{ position: "absolute", top: 8, left: 8, backgroundColor: badgeColor, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8 }}>
             <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>{badgeText}</Text>
           </View>
         </View>
 
         <View style={{ padding: 10 }}>
-          <Text style={{ fontWeight: "800", color: "#fff" }} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <Text numberOfLines={2} style={{ color: "#bbb", marginTop: 4, lineHeight: 18 }}>
-            {item.description}
-          </Text>
+          <Text style={{ fontWeight: "800", color: "#fff" }} numberOfLines={1}>{item.title}</Text>
+          <Text numberOfLines={2} style={{ color: "#bbb", marginTop: 4, lineHeight: 18 }}>{item.description}</Text>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: "#2a2a2a",
-                borderRadius: 8,
-                paddingVertical: 4,
-                paddingHorizontal: 8,
-              }}
-            >
+            <View style={{ borderWidth: 1, borderColor: "#2a2a2a", borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8 }}>
               <Text style={{ color: "#bbb", fontSize: 12 }}>{item.durationMins} mins</Text>
             </View>
             {coming && (
-              <View
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#2a2a2a",
-                  borderRadius: 8,
-                  paddingVertical: 4,
-                  paddingHorizontal: 8,
-                }}
-              >
+              <View style={{ borderWidth: 1, borderColor: "#2a2a2a", borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8 }}>
                 <Text style={{ color: "#bbb", fontSize: 12 }}>Premieres {formatDate(rel)}</Text>
               </View>
             )}
@@ -167,15 +133,7 @@ export default function Dashboard() {
           {canBook && (
             <Link
               href={{ pathname: "/(user)/movie/[movieId]", params: { movieId: String(item.id) } }}
-              style={{
-                marginTop: 10,
-                backgroundColor: GOLD,
-                color: "#000",
-                textAlign: "center",
-                fontWeight: "900",
-                paddingVertical: 10,
-                borderRadius: 10,
-              }}
+              style={{ marginTop: 10, backgroundColor: GOLD, color: "#000", textAlign: "center", fontWeight: "900", paddingVertical: 10, borderRadius: 10 }}
             >
               Book Now
             </Link>
@@ -185,15 +143,7 @@ export default function Dashboard() {
     );
   };
 
-  const Section = ({
-    title,
-    data,
-    canBook,
-  }: {
-    title: string;
-    data: Movie[];
-    canBook?: boolean;
-  }) => (
+  const Section = ({ title, data, canBook }: { title: string; data: Movie[]; canBook?: boolean }) => (
     <View style={{ marginTop: 18 }}>
       <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 16, marginBottom: 6 }}>
         <View style={{ width: 6, height: 18, backgroundColor: GOLD, borderRadius: 3, marginRight: 8 }} />
@@ -206,54 +156,27 @@ export default function Dashboard() {
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
         renderItem={({ item }) => <Card item={item} canBook={canBook} />}
-        ListEmptyComponent={
-          <Text style={{ marginLeft: 16, color: "#888" }}>
-            {title === "Showing Now" ? "No movies today." : "No upcoming titles."}
-          </Text>
-        }
+        ListEmptyComponent={<Text style={{ marginLeft: 16, color: "#888" }}>{title === "Showing Now" ? "No movies today." : "No upcoming titles."}</Text>}
         showsHorizontalScrollIndicator={false}
       />
     </View>
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#0b0b0b" }}>
-      {/* Top brand / search */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#0b0b0b" }} edges={["top"]}>
+      {/* Top brand / tools */}
       <LinearGradient
         colors={["#111111", "#0b0b0b"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 14,
-          paddingBottom: 14,
-          borderBottomWidth: 1,
-          borderColor: "#1a1a1a",
-        }}
+        style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderColor: "#1a1a1a" }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          {/* Logo pill */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 10,
-                borderWidth: 2,
-                borderColor: GOLD,
-                backgroundColor: "#0f0f0f",
-                overflow: "hidden",
-              }}
-            >
+          {/* Left: logo + brand */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 10, borderWidth: 2, borderColor: GOLD, backgroundColor: "#0f0f0f", overflow: "hidden" }}>
               <Image source={LOGO} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
             </View>
-
             <View>
               <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>PVR Cinemas</Text>
               <Text style={{ color: "#aaa", fontSize: 12 }}>
@@ -261,23 +184,18 @@ export default function Dashboard() {
               </Text>
             </View>
           </View>
+
+          {/* Right: quick links */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Link href="/(user)/tickets" style={{ color: GOLD, fontWeight: "800" }}>Tickets</Link>
+            <TouchableOpacity onPress={logout}>
+              <Text style={{ color: "#e11", fontWeight: "700" }}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search */}
-        <View
-          style={{
-            marginTop: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            backgroundColor: "#121212",
-            borderWidth: 1,
-            borderColor: "#222",
-            borderRadius: 12,
-            paddingHorizontal: 10,
-            paddingVertical: 8,
-          }}
-        >
+        <View style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#121212", borderWidth: 1, borderColor: "#222", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 }}>
           <Ionicons name="search-outline" size={18} color="#bbb" />
           <TextInput
             value={q}
@@ -296,8 +214,8 @@ export default function Dashboard() {
         {/* Filter chips */}
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
           {[
-            { key: "all", label: `All (${filteredBase.length})` },
-            { key: "now", label: `Showing (${computed.now.length})` },
+            { key: "all",  label: `All (${filteredBase.length})` },
+            { key: "now",  label: `Showing (${computed.now.length})` },
             { key: "soon", label: `Soon (${computed.soon.length})` },
           ].map((c) => {
             const active = tab === (c.key as any);
@@ -314,9 +232,7 @@ export default function Dashboard() {
                   backgroundColor: active ? GOLD : "transparent",
                 }}
               >
-                <Text style={{ color: active ? "#000" : "#ddd", fontWeight: "700", fontSize: 12 }}>
-                  {c.label}
-                </Text>
+                <Text style={{ color: active ? "#000" : "#ddd", fontWeight: "700", fontSize: 12 }}>{c.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -325,10 +241,9 @@ export default function Dashboard() {
 
       {/* Content */}
       <ScrollView contentContainerStyle={{ paddingBottom: 28 }} keyboardShouldPersistTaps="handled">
-        {(tab === "all" || tab === "now") && <Section title="Showing Now" data={showingNow} canBook />}
+        {(tab === "all" || tab === "now")  && <Section title="Showing Now" data={showingNow} canBook />}
         {(tab === "all" || tab === "soon") && <Section title="Coming Soon" data={comingSoon} />}
 
-        {/* About / Footer */}
         <View style={{ padding: 16 }}>
           <Text style={{ marginTop: 8, color: "#bbb", lineHeight: 20 }}>
             PVR Cinemas brings you the latest blockbusters with seamless booking and comfy seats. Enjoy the show!

@@ -5,6 +5,8 @@ import { getMovie } from "../../../../lib/movieService";
 import type { Movie } from "../../../../lib/types";
 import { toSafeImageUri } from "../../../../utils/url";
 import { POSTER_FALLBACK } from "../../../../lib/constants";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors, radius, spacing } from "../../../../lib/theme";
 
 export default function MovieDetails() {
   const { movieId } = useLocalSearchParams<{ movieId: string }>();
@@ -27,18 +29,22 @@ export default function MovieDetails() {
 
   if (loading) {
     return (
-      <View style={{ flex:1, alignItems:"center", justifyContent:"center" }}>
-        <ActivityIndicator />
-        <Text style={{ marginTop:8 }}>Loading…</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colors.accent} />
+          <Text style={{ marginTop: 8, color: colors.text }}>Loading…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!movie) {
     return (
-      <View style={{ flex:1, alignItems:"center", justifyContent:"center", padding:16 }}>
-        <Text>Movie not found.</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg }}>
+          <Text style={{ color: colors.text }}>Movie not found.</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -46,22 +52,39 @@ export default function MovieDetails() {
   const rel = movie.releaseDate?.toDate?.();
 
   return (
-    <ScrollView contentContainerStyle={{ padding:16, gap:12 }}>
-      <Image source={{ uri }} style={{ width: "100%", height: 360, borderRadius: 12, backgroundColor:"#eee" }} resizeMode="cover" />
-      <Text style={{ fontSize:22, fontWeight:"700" }}>{movie.title}</Text>
-      {rel && (
-        <Text style={{ color:"#666" }}>
-          Release: {rel.getFullYear()}-{String(rel.getMonth()+1).padStart(2,"0")}-{String(rel.getDate()).padStart(2,"0")} · {movie.durationMins} mins
-        </Text>
-      )}
-      <Text style={{ color:"#444", lineHeight:20 }}>{movie.description}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+        <Image
+          source={{ uri }}
+          style={{ width: "100%", height: 360, borderRadius: radius.md, backgroundColor: "#1a1a1a" }}
+          resizeMode="cover"
+        />
+        <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text }}>{movie.title}</Text>
+        {rel && (
+          <Text style={{ color: colors.textMuted }}>
+            Release: {rel.getFullYear()}-{String(rel.getMonth() + 1).padStart(2, "0")}-
+            {String(rel.getDate()).padStart(2, "0")} · {movie.durationMins} mins
+          </Text>
+        )}
+        <Text style={{ color: colors.text, opacity: 0.9, lineHeight: 20 }}>{movie.description}</Text>
 
-      <Link
-        href={{ pathname: "/(user)/movie/[movieId]/select", params: { movieId: String(movieId) } }}
-        style={{ marginTop:16, padding:14, textAlign:"center", borderWidth:1, borderRadius:8, borderColor:"#333", backgroundColor:"#111", color:"#fff" }}
-      >
-        Book Now
-      </Link>
-    </ScrollView>
+        <Link
+          href={{ pathname: "/(user)/movie/[movieId]/select", params: { movieId: String(movieId) } }}
+          style={{
+            marginTop: spacing.lg,
+            padding: 14,
+            textAlign: "center",
+            borderWidth: 1,
+            borderRadius: radius.md,
+            borderColor: colors.accent,
+            backgroundColor: colors.accent,
+            color: colors.accentText,
+            fontWeight: "800",
+          }}
+        >
+          Book Now
+        </Link>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

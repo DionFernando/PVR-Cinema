@@ -1,0 +1,44 @@
+[debug] [2025-09-10T17:01:21.321Z] ----------------------------------------------------------------------
+[debug] [2025-09-10T17:01:21.323Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\User\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js functions:delete onBookingCreate --region us-central1
+[debug] [2025-09-10T17:01:21.323Z] CLI Version:   14.15.2
+[debug] [2025-09-10T17:01:21.323Z] Platform:      win32
+[debug] [2025-09-10T17:01:21.323Z] Node Version:  v22.15.0
+[debug] [2025-09-10T17:01:21.323Z] Time:          Wed Sep 10 2025 22:31:21 GMT+0530 (India Standard Time)
+[debug] [2025-09-10T17:01:21.323Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-10T17:01:21.436Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-10T17:01:21.437Z] > authorizing via signed-in user (dionfernando2003@gmail.com)
+[debug] [2025-09-10T17:01:21.437Z] [iam] checking project pvr-cinema for permissions ["cloudfunctions.functions.delete","cloudfunctions.functions.list","firebase.projects.get"]
+[debug] [2025-09-10T17:01:21.437Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:21.438Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:21.438Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/pvr-cinema:testIamPermissions [none]
+[debug] [2025-09-10T17:01:21.438Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/pvr-cinema:testIamPermissions x-goog-quota-user=projects/pvr-cinema
+[debug] [2025-09-10T17:01:21.438Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/pvr-cinema:testIamPermissions {"permissions":["cloudfunctions.functions.delete","cloudfunctions.functions.list","firebase.projects.get"]}
+[debug] [2025-09-10T17:01:22.662Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/pvr-cinema:testIamPermissions 200
+[debug] [2025-09-10T17:01:22.662Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/pvr-cinema:testIamPermissions {"permissions":["cloudfunctions.functions.delete","cloudfunctions.functions.list","firebase.projects.get"]}
+[debug] [2025-09-10T17:01:22.663Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:22.663Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:22.663Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:22.663Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:22.663Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/pvr-cinema/adminSdkConfig [none]
+[debug] [2025-09-10T17:01:22.664Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/pvr-cinema/locations/-/functions [none]
+[debug] [2025-09-10T17:01:23.166Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/pvr-cinema/adminSdkConfig 200
+[debug] [2025-09-10T17:01:23.166Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/pvr-cinema/adminSdkConfig {"projectId":"pvr-cinema","storageBucket":"pvr-cinema.firebasestorage.app"}
+[debug] [2025-09-10T17:01:23.453Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/pvr-cinema/locations/-/functions 200
+[debug] [2025-09-10T17:01:23.453Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/pvr-cinema/locations/-/functions {}
+[debug] [2025-09-10T17:01:23.454Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:23.454Z] Checked if tokens are valid: true, expires at: 1757524909925
+[debug] [2025-09-10T17:01:23.454Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v2/projects/pvr-cinema/locations/-/functions filter=environment%3D%22GEN_2%22
+[debug] [2025-09-10T17:01:25.015Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v2/projects/pvr-cinema/locations/-/functions 200
+[debug] [2025-09-10T17:01:25.016Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v2/projects/pvr-cinema/locations/-/functions {}
+[debug] [2025-09-10T17:01:25.201Z] TypeError: Cannot convert undefined or null to object
+    at Function.values (<anonymous>)
+    at C:\Users\User\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\backend.js:261:37
+    at Array.reduce (<anonymous>)
+    at allEndpoints (C:\Users\User\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\backend.js:260:45)
+    at Object.matchingBackend (C:\Users\User\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\backend.js:284:28)
+    at Object.createDeploymentPlan (C:\Users\User\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\release\planner.js:78:27)
+    at Command.actionFn (C:\Users\User\AppData\Roaming\npm\node_modules\firebase-tools\lib\commands\functions-delete.js:43:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: An unexpected error has occurred.
