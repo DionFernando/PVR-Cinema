@@ -27,7 +27,7 @@ export default function Login() {
       await login(email.trim(), password);
       router.replace("/"); // index will route to admin/user
     } catch (e: any) {
-      Alert.alert("Login failed", e?.message ?? "Invalid credentials");
+      Alert.alert("Login failed", "Invalid credentials");
     } finally {
       setLoading(false);
     }

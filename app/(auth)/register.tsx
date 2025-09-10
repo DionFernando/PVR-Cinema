@@ -8,6 +8,7 @@ import { useAuth } from "../../store/AuthProvider";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
+
 export default function Register() {
   const { register } = useAuth();
   const [name, setName] = useState("");
@@ -31,7 +32,7 @@ export default function Register() {
       await register(name.trim(), email.trim(), password);
       router.replace("/"); // index decides destination
     } catch (e: any) {
-      Alert.alert("Register failed", e?.message ?? "Please try again");
+      Alert.alert("Register failed", "Please try again");
     } finally {
       setLoading(false);
     }

@@ -17,7 +17,7 @@ export default function UserLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" backgroundColor={colors.bg} />
+      <StatusBar style="light"/>
       {loading ? (
         <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={colors.accent} />

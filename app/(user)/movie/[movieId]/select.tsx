@@ -1,3 +1,4 @@
+// app/(user)/movie/[movieId]/select.tsx
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -9,6 +10,17 @@ import { colors, radius, spacing } from "../../../../lib/theme";
 function uniq<T>(arr: T[]): T[] {
   return Array.from(new Set(arr));
 }
+function ymd(d: Date) {
+  const y = d.getFullYear();
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function addDays(d: Date, n: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
 
 export default function SelectShowtime() {
   const { movieId } = useLocalSearchParams<{ movieId: string }>();
@@ -18,6 +30,12 @@ export default function SelectShowtime() {
   const [time, setTime] = useState<string>("");
   const [seatCount, setSeatCount] = useState<number>(1);
 
+  // Compute "today/tomorrow/day after" once per render
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = ymd(today);
+  const capDates = [todayStr, ymd(addDays(today, 1)), ymd(addDays(today, 2))];
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -25,26 +43,40 @@ export default function SelectShowtime() {
         if (movieId) {
           const sts = await listShowtimesByMovie(String(movieId));
           setShowtimes(sts);
-          if (sts.length) setDate(sts[0].date); // default to first available date
+
+          // pick the first available day among Today/Tomorrow/Day after
+          const firstAvail = capDates.find(d => sts.some(s => s.date === d));
+          setDate(firstAvail ?? "");
+          setTime("");
         }
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieId]);
 
-  const dates = useMemo(() => uniq(showtimes.map((s) => s.date)), [showtimes]);
+  // Only keep showtimes (and date chips) for today/next 2 days, and never past dates
+  const dates = useMemo(() => {
+    const futureDates = showtimes
+      .filter(s => s.date >= todayStr) // hide past
+      .map(s => s.date);
+    const uniqueFuture = uniq(futureDates);
+    // Intersect with our cap (Today/Tomorrow/Day after) in that order
+    return capDates.filter(d => uniqueFuture.includes(d));
+  }, [showtimes, todayStr]);
 
+  // Times for selected day (with sold-out state)
   const timesForDateObj = useMemo(() => {
-    const list = showtimes.filter((s) => s.date === date);
-    return list.map((s) => ({
+    const list = showtimes.filter(s => s.date === date);
+    return list.map(s => ({
       time: s.startTime,
-      soldOut: (s.seatsReserved?.length || 0) >= 80, // 10x8
+      soldOut: (s.seatsReserved?.length || 0) >= 80, // 10 x 8 seats
     }));
   }, [showtimes, date]);
 
   const selectedShowtime = useMemo(
-    () => showtimes.find((s) => s.date === date && s.startTime === time) || null,
+    () => showtimes.find(s => s.date === date && s.startTime === time) || null,
     [showtimes, date, time]
   );
 
@@ -71,11 +103,11 @@ export default function SelectShowtime() {
     );
   }
 
-  if (!showtimes.length) {
+  if (!showtimes.length || dates.length === 0) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg }}>
-          <Text style={{ color: colors.text }}>No showtimes available for this movie.</Text>
+          <Text style={{ color: colors.text }}>No showtimes available for the next 3 days.</Text>
         </View>
       </SafeAreaView>
     );
@@ -87,7 +119,7 @@ export default function SelectShowtime() {
         <Text style={{ fontSize: 20, fontWeight: "700", color: colors.text }}>Select Date</Text>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-          {dates.map((d) => {
+          {dates.map(d => {
             const active = d === date;
             return (
               <TouchableOpacity
@@ -155,7 +187,7 @@ export default function SelectShowtime() {
         </Text>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+          {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
             const active = n === seatCount;
             return (
               <TouchableOpacity
