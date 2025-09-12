@@ -33,7 +33,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+       ["expo-camera", { "cameraPermission": "Allow PVR Cinemas to scan ticket QR codes." }]
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { SafeAreaView, View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import { Image } from "react-native";
 import { LOGO } from "../lib/images";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 function formatColombo(now: Date) {
   try {

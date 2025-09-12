@@ -10,8 +10,7 @@ import { toSafeImageUri } from "../../../utils/url";
 import { listShowtimesByMovie } from "../../../lib/showtimeService";
 import AdminHeader from "../../../components/AdminHeader";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-
+import type { Href } from "expo-router";
 
 export default function AdminMovies() {
   const [loading, setLoading] = useState(true);
@@ -62,49 +61,69 @@ export default function AdminMovies() {
       <AdminHeader title="Movies" />
 
       <View style={{ paddingHorizontal: 16, paddingTop: 12, flexDirection: "row", gap: 10 }}>
-        {/* Showtimes (primary) */}
-        <TouchableOpacity
-          onPress={() => router.push("/(admin)/showtimes")}
-          activeOpacity={0.8}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            paddingVertical: 12,
-            paddingHorizontal: 14,
-            borderRadius: 12,
-            backgroundColor: "#2563eb",
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 2,
-          }}
-        >
-          <Ionicons name="time-outline" size={18} color="#fff" />
-          <Text style={{ color: "#fff", fontWeight: "800" }}>Showtimes</Text>
-        </TouchableOpacity>
+        {/* Showtimes */}
+        <Link href="/(admin)/showtimes" asChild>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              borderRadius: 12,
+              backgroundColor: "#2563eb",
+              shadowColor: "#000",
+              shadowOpacity: 0.1,
+              shadowRadius: 6,
+              elevation: 2,
+            }}
+          >
+            <Ionicons name="time-outline" size={18} color="#fff" />
+            <Text style={{ color: "#fff", fontWeight: "800" }}>Showtimes</Text>
+          </TouchableOpacity>
+        </Link>
 
-        {/* New Movie (outline) */}
-        <TouchableOpacity
-          onPress={() => router.push("/(admin)/movies/new")}
-          activeOpacity={0.8}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            paddingVertical: 12,
-            paddingHorizontal: 14,
-            borderRadius: 12,
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#2563eb",
-          }}
-        >
-          <Ionicons name="add-circle-outline" size={18} color="#2563eb" />
-          <Text style={{ color: "#2563eb", fontWeight: "800" }}>New Movie</Text>
-        </TouchableOpacity>
+        {/* New Movie */}
+        <Link href="/(admin)/movies/new" asChild>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              borderRadius: 12,
+              backgroundColor: "#fff",
+              borderWidth: 1,
+              borderColor: "#2563eb",
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={18} color="#2563eb" />
+            <Text style={{ color: "#2563eb", fontWeight: "800" }}>New Movie</Text>
+          </TouchableOpacity>
+        </Link>
+
+        {/* Scan QR */}
+        <Link href={"/(admin)/scan" as Href} asChild>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              borderRadius: 12,
+              backgroundColor: "#10b981",
+            }}
+          >
+            <Ionicons name="qr-code-outline" size={18} color="#fff" />
+            <Text style={{ color: "#fff", fontWeight: "800" }}>Scan QR</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
-
 
       <FlatList
         data={movies}
@@ -132,10 +151,16 @@ export default function AdminMovies() {
                 <Text numberOfLines={2} style={{ color: "#555", marginTop: 4 }}>{item.description}</Text>
 
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginTop: 10 }}>
-                  <Link href={{ pathname: "/(admin)/movies/[movieId]/edit", params: { movieId: String(item.id) } }} style={{ color: "#2563eb", fontWeight: "700" }}>
+                  <Link
+                    href={{ pathname: "/(admin)/movies/[movieId]/edit", params: { movieId: String(item.id) } }}
+                    style={{ color: "#2563eb", fontWeight: "700" }}
+                  >
                     Edit
                   </Link>
-                  <Link href={{ pathname: "/(admin)/showtimes/new", params: { movieId: String(item.id) } }} style={{ color: "#2563eb", fontWeight: "700" }}>
+                  <Link
+                    href={{ pathname: "/(admin)/showtimes/new", params: { movieId: String(item.id) } }}
+                    style={{ color: "#2563eb", fontWeight: "700" }}
+                  >
                     Add Showtime
                   </Link>
                   <TouchableOpacity onPress={() => confirmDelete(item)}>
