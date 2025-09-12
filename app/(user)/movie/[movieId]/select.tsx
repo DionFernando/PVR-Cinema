@@ -7,25 +7,28 @@ import type { Showtime } from "../../../../lib/types";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radius, spacing } from "../../../../lib/theme";
 
-function uniq<T>(arr: T[]): T[] {
-  return Array.from(new Set(arr));
-}
 function ymd(d: Date) {
   const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
-function addDays(d: Date, n: number) {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
-}
-function isPastDateTime(dateStr: string, timeStr?: string) {
-  // timeStr is "HH:mm"
+function nowYmd() { return ymd(new Date()); }
+function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function isPast(dateStr: string, timeStr: string) {
   const now = new Date();
-  const dt = new Date(`${dateStr}T${(timeStr || "00:00")}:00`);
+  const dt = new Date(`${dateStr}T${timeStr}:00`);
   return dt.getTime() < now.getTime();
+}
+function labelFor(dateStr: string) {
+  const today = new Date();
+  const d0 = ymd(today);
+  const d1 = ymd(addDays(today, 1));
+  const d2 = ymd(addDays(today, 2));
+  if (dateStr === d0) return "Today";
+  if (dateStr === d1) return "Tomorrow";
+  if (dateStr === d2) return "Day after";
+  return dateStr;
 }
 
 export default function SelectShowtime() {
@@ -36,13 +39,6 @@ export default function SelectShowtime() {
   const [time, setTime] = useState<string>("");
   const [seatCount, setSeatCount] = useState<number>(1);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = ymd(today);
-  const tomorrowStr = ymd(addDays(today, 1));
-  const dayAfterStr = ymd(addDays(today, 2));
-  const capDates = [todayStr, tomorrowStr, dayAfterStr];
-
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -50,54 +46,69 @@ export default function SelectShowtime() {
         if (movieId) {
           const sts = await listShowtimesByMovie(String(movieId));
           setShowtimes(sts);
-
-          // Default to the first date among Today/Tomorrow/Day after that has a future time
-          const firstAvail = capDates.find(d =>
-            sts.some(s => s.date === d && !isPastDateTime(s.date, s.startTime))
-          );
-          setDate(firstAvail ?? "");
-          setTime("");
         }
       } finally {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieId]);
 
-  // Only show dates in next 3 days and not past
+  /** Limit to only Today / Tomorrow / Day after */
+  const allowedDateSet = useMemo(() => {
+    const today = new Date();
+    return new Set([ymd(today), ymd(addDays(today, 1)), ymd(addDays(today, 2))]);
+  }, []);
+
+  const limited = useMemo(
+    () => showtimes.filter((s) => allowedDateSet.has(s.date)),
+    [showtimes, allowedDateSet]
+  );
+
+  /** Unique dates present (limited to 3 days) */
   const dates = useMemo(() => {
-    const futureDates = showtimes
-      .filter(s => s.date >= todayStr) // hide past days entirely
-      .map(s => s.date);
-    const unique = uniq(futureDates);
-    return capDates.filter(d => unique.includes(d));
-  }, [showtimes, todayStr]);
+    const set = new Set<string>();
+    // Prefer chronological
+    const sorted = [...limited].sort((a, b) =>
+      a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date)
+    );
+    for (const s of sorted) set.add(s.date);
+    return Array.from(set);
+  }, [limited]);
 
-  // Label chips as "Today", "<YYYY-MM-DD>", "<YYYY-MM-DD>"
-  function labelForDate(d: string) {
-    if (d === todayStr) return "Today";
-    return d; // tomorrow/day-after as date strings per your request
-  }
+  /** Default selected date = first with at least one future time */
+  useEffect(() => {
+    if (!dates.length) return;
+    const firstWithTime = dates.find((d) =>
+      limited.some((s) => s.date === d && !isPast(s.date, s.startTime))
+    );
+    setDate(firstWithTime || dates[0]);
+    setTime("");
+  }, [dates.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Times for selected date (disable past times for Today; always disable sold out)
+  /** Times for the selected date (hide past times for today) + sold-out flag */
   const timesForDateObj = useMemo(() => {
-    const list = showtimes.filter(s => s.date === date);
-    return list.map(s => {
-      const soldOut = (s.seatsReserved?.length || 0) >= 80;
-      const past = isPastDateTime(s.date, s.startTime); // will only be true for "Today"
-      return { time: s.startTime, soldOut, past, id: s.id };
-    });
-  }, [showtimes, date]);
+    const list = limited
+      .filter((s) => s.date === date)
+      .filter((s) => !isPast(s.date, s.startTime)) // hide past times for today
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    // Deduplicate times (if admin accidentally created duplicates)
+    const seen = new Set<string>();
+    return list
+      .filter((s) => (seen.has(s.startTime) ? false : (seen.add(s.startTime), true)))
+      .map((s) => ({
+        time: s.startTime,
+        soldOut: (s.seatsReserved?.length || 0) >= 80, // 10x8
+      }));
+  }, [limited, date]);
 
   const selectedShowtime = useMemo(
-    () => showtimes.find(s => s.date === date && s.startTime === time) || null,
-    [showtimes, date, time]
+    () => limited.find((s) => s.date === date && s.startTime === time) || null,
+    [limited, date, time]
   );
-  const selectedIsPast = selectedShowtime ? isPastDateTime(selectedShowtime.date, selectedShowtime.startTime) : false;
 
   const proceed = () => {
-    if (!movieId || !selectedShowtime || selectedIsPast) return;
+    if (!movieId || !selectedShowtime) return;
     router.push({
       pathname: "/(user)/movie/[movieId]/seats",
       params: {
@@ -119,7 +130,7 @@ export default function SelectShowtime() {
     );
   }
 
-  if (!showtimes.length || dates.length === 0) {
+  if (!limited.length) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg }}>
@@ -135,12 +146,15 @@ export default function SelectShowtime() {
         <Text style={{ fontSize: 20, fontWeight: "700", color: colors.text }}>Select Date</Text>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-          {dates.map(d => {
+          {dates.map((d) => {
             const active = d === date;
             return (
               <TouchableOpacity
                 key={d}
-                onPress={() => { setDate(d); setTime(""); }}
+                onPress={() => {
+                  setDate(d);
+                  setTime("");
+                }}
                 style={{
                   paddingVertical: 10,
                   paddingHorizontal: 14,
@@ -151,7 +165,7 @@ export default function SelectShowtime() {
                 }}
               >
                 <Text style={{ color: active ? colors.accentText : colors.text }}>
-                  {labelForDate(d)}
+                  {labelFor(d)}
                 </Text>
               </TouchableOpacity>
             );
@@ -164,30 +178,30 @@ export default function SelectShowtime() {
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
           {timesForDateObj.length ? (
-            timesForDateObj.map(({ time: t, soldOut, past }) => {
+            timesForDateObj.map(({ time: t, soldOut }) => {
               const active = t === time;
-              const disabled = soldOut || past;
               return (
                 <TouchableOpacity
                   key={t}
-                  disabled={disabled}
+                  disabled={soldOut}
                   onPress={() => setTime(t)}
                   style={{
                     paddingVertical: 10,
                     paddingHorizontal: 14,
                     borderRadius: radius.pill,
                     borderWidth: 1,
-                    borderColor: disabled ? colors.border : active ? colors.accent : colors.chipBorder,
-                    backgroundColor: disabled
+                    borderColor: soldOut ? colors.border : active ? colors.accent : colors.chipBorder,
+                    backgroundColor: soldOut
                       ? colors.cardAlt
                       : active
                       ? colors.accent
                       : colors.chipBg,
-                    opacity: disabled ? 0.7 : 1,
+                    opacity: soldOut ? 0.6 : 1,
                   }}
                 >
                   <Text style={{ color: active ? colors.accentText : colors.text }}>
-                    {t}{soldOut ? " (Sold out)" : past ? " (Past)" : ""}
+                    {t}
+                    {soldOut ? " (Sold out)" : ""}
                   </Text>
                 </TouchableOpacity>
               );
@@ -202,7 +216,7 @@ export default function SelectShowtime() {
         </Text>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-          {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
             const active = n === seatCount;
             return (
               <TouchableOpacity
@@ -229,16 +243,16 @@ export default function SelectShowtime() {
 
         <TouchableOpacity
           onPress={proceed}
-          disabled={!selectedShowtime || selectedIsPast}
+          disabled={!selectedShowtime}
           style={{
             marginTop: 8,
             padding: 14,
             borderRadius: radius.md,
-            backgroundColor: !selectedShowtime || selectedIsPast ? "#666" : colors.success,
+            backgroundColor: selectedShowtime ? colors.success : "#666",
           }}
         >
           <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>
-            {!selectedShowtime ? "Select date & time" : selectedIsPast ? "Time has passed" : "Proceed"}
+            {selectedShowtime ? "Proceed" : "Select date & time"}
           </Text>
         </TouchableOpacity>
       </ScrollView>

@@ -2,23 +2,19 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Button, Alert, ScrollView, Switch } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { createShowtime } from "../../../lib/showtimeService";
 import { listMovies } from "../../../lib/movieService";
+import { createShowtime, createShowtimesBulk } from "../../../lib/showtimeService";
 import type { Movie } from "../../../lib/types";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AdminHeader from "../../../components/AdminHeader";
 import { Picker } from "@react-native-picker/picker";
 
-function ymd(d: Date) {
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-function addDaysStr(days: number) {
+function todayYmd() {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + days);
-  return ymd(d);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export default function NewShowtime() {
@@ -26,52 +22,48 @@ export default function NewShowtime() {
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [movieId, setMovieId] = useState<string>(presetMovieId ?? "");
-  const [time, setTime] = useState("");       // HH:mm
+  const [date, setDate] = useState(todayYmd()); // YYYY-MM-DD
+  const [time, setTime] = useState("19:30");    // HH:mm
   const [classic, setClassic] = useState("");
   const [prime, setPrime] = useState("");
   const [superior, setSuperior] = useState("");
-  const [repeat7, setRepeat7] = useState(true); // default: create for a week
-  const [date, setDate] = useState(addDaysStr(0)); // used only when repeat7 = false
+  const [repeatWeek, setRepeatWeek] = useState(true);
 
   useEffect(() => {
     (async () => {
       const m = await listMovies();
       setMovies(m);
-      if (!presetMovieId && m.length) setMovieId(m[0].id);
+      if (!movieId && m.length) setMovieId(m[0].id);
     })();
   }, []);
 
   const save = async () => {
-    if (!movieId || !time || !classic || !prime || !superior) {
-      Alert.alert("Missing", "Please fill Movie, Time and Prices.");
+    if (!movieId || !date || !time || !classic || !prime || !superior) {
+      Alert.alert("Missing", "Fill all fields.");
       return;
     }
+
     try {
-      const prices = {
+      const priceMap = {
         Classic: Number(classic),
         Prime: Number(prime),
         Superior: Number(superior),
       };
 
-      if (repeat7) {
-        // Create Today + next 6 days
-        for (let d = 0; d < 7; d++) {
-          await createShowtime({
-            movieId,
-            date: addDaysStr(d),
-            startTime: time,
-            priceMap: prices,
-          });
-        }
+      if (repeatWeek) {
+        const res = await createShowtimesBulk({
+          movieId,
+          startDate: date,
+          startTime: time,
+          days: 7,
+          priceMap,
+        });
+        Alert.alert("Saved", `Created ${res.created} showtime(s). Skipped ${res.skipped}.`);
       } else {
-        if (!date) {
-          Alert.alert("Missing", "Please set a date or enable Repeat 7 days.");
-          return;
-        }
-        await createShowtime({ movieId, date, startTime: time, priceMap: prices });
+        await createShowtime({ movieId, date, startTime: time, priceMap });
+        Alert.alert("Saved", "Showtime created.");
       }
 
-      Alert.alert("Saved", repeat7 ? "Showtimes created for the next 7 days." : "Showtime created.");
       router.replace("/(admin)/showtimes");
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to save showtime");
@@ -80,10 +72,9 @@ export default function NewShowtime() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f6f7f9" }} edges={["top"]}>
+      <AdminHeader title="New Showtime" />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        <Text style={{ fontSize: 20, fontWeight: "800", color: "#111" }}>New Showtime</Text>
-
-        <Text style={{ color: "#333" }}>Movie</Text>
+        <Text style={{ fontSize: 16, fontWeight: "700" }}>Movie</Text>
         <View style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, backgroundColor: "#fff" }}>
           <Picker
             selectedValue={movieId}
@@ -91,69 +82,57 @@ export default function NewShowtime() {
             dropdownIconColor="#111"
             style={{ color: "#111" }}
           >
-            {movies.length === 0 ? (
-              <Picker.Item label="No movies available" value="" />
-            ) : (
-              movies.map((m) => <Picker.Item key={m.id} label={m.title} value={m.id} />)
-            )}
+            {movies.map((m) => (
+              <Picker.Item key={m.id} label={m.title} value={m.id} />
+            ))}
           </Picker>
         </View>
-        {movies.length === 0 && (
-          <Text style={{ color: "#666" }}>
-            Tip: Add one in Admin · Movies first.
-          </Text>
-        )}
 
-        <Text style={{ color: "#333" }}>Time (HH:mm)</Text>
+        <Text style={{ fontSize: 16, fontWeight: "700" }}>Date (YYYY-MM-DD)</Text>
+        <TextInput
+          value={date}
+          onChangeText={setDate}
+          placeholder="2025-09-05"
+          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 10, backgroundColor: "#fff" }}
+        />
+
+        <Text style={{ fontSize: 16, fontWeight: "700" }}>Time (HH:mm)</Text>
         <TextInput
           value={time}
           onChangeText={setTime}
           placeholder="19:30"
-          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 12, backgroundColor: "#fff" }}
+          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 10, backgroundColor: "#fff" }}
         />
 
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: "#333" }}>Repeat daily for the next 7 days</Text>
-          <Switch value={repeat7} onValueChange={setRepeat7} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <Text style={{ fontWeight: "700" }}>Repeat for next 7 days</Text>
+          <Switch value={repeatWeek} onValueChange={setRepeatWeek} />
         </View>
 
-        {!repeat7 && (
-          <>
-            <Text style={{ color: "#333" }}>Date (YYYY-MM-DD)</Text>
-            <TextInput
-              value={date}
-              onChangeText={setDate}
-              placeholder="2025-09-05"
-              style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 12, backgroundColor: "#fff" }}
-            />
-          </>
-        )}
-
-        <Text style={{ color: "#333" }}>Price — Classic</Text>
+        <Text style={{ fontSize: 16, fontWeight: "700", marginTop: 8 }}>Prices</Text>
+        <Text>Classic</Text>
         <TextInput
           value={classic}
           onChangeText={setClassic}
           keyboardType="numeric"
           placeholder="800"
-          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 12, backgroundColor: "#fff" }}
+          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 10, backgroundColor: "#fff" }}
         />
-
-        <Text style={{ color: "#333" }}>Price — Prime</Text>
+        <Text>Prime</Text>
         <TextInput
           value={prime}
           onChangeText={setPrime}
           keyboardType="numeric"
           placeholder="1200"
-          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 12, backgroundColor: "#fff" }}
+          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 10, backgroundColor: "#fff" }}
         />
-
-        <Text style={{ color: "#333" }}>Price — Superior</Text>
+        <Text>Superior</Text>
         <TextInput
           value={superior}
           onChangeText={setSuperior}
           keyboardType="numeric"
           placeholder="1500"
-          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 12, backgroundColor: "#fff" }}
+          style={{ borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, padding: 10, backgroundColor: "#fff" }}
         />
 
         <View style={{ marginTop: 8 }}>
