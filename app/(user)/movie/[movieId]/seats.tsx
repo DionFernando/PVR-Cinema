@@ -1,3 +1,4 @@
+// app/(user)/movie/[movieId]/seats.tsx
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, ActivityIndicator, Alert, TouchableOpacity, ScrollView } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -7,7 +8,13 @@ import type { Showtime, Movie } from "../../../../lib/types";
 import SeatGrid from "../../../../components/SeatGrid";
 import { seatTypeFromId } from "../../../../lib/seatConfig";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, radius, spacing } from "../../../../lib/theme";
+import { colors, radius } from "../../../../lib/theme";
+
+function isPast(dateStr: string, timeStr: string) {
+  const now = new Date();
+  const dt = new Date(`${dateStr}T${timeStr}:00`);
+  return dt.getTime() < now.getTime();
+}
 
 export default function SeatsSelect() {
   const { movieId, showtimeId, seatCount } = useLocalSearchParams<{
@@ -32,6 +39,23 @@ export default function SeatsSelect() {
           getShowtime(String(showtimeId)),
           getMovie(String(movieId)),
         ]);
+        if (!st || !mv) {
+          Alert.alert("Not found", "Showtime or movie not found.", [
+            { text: "OK", onPress: () => router.back() },
+          ]);
+          return;
+        }
+        // Hard block past showtime
+        if (isPast(st.date, st.startTime)) {
+          Alert.alert("Time has passed", "This showtime is no longer available.", [
+            {
+              text: "OK",
+              onPress: () =>
+                router.replace({ pathname: "/(user)/movie/[movieId]/select", params: { movieId: String(movieId) } }),
+            },
+          ]);
+          return;
+        }
         setShowtime(st);
         setMovie(mv);
       } finally {
@@ -50,7 +74,6 @@ export default function SeatsSelect() {
   const toggle = (id: string) => {
     const already = selected.includes(id);
     const type = seatTypeFromId(id);
-
     if (!lockedType) {
       setLockedType(type);
     } else if (lockedType !== type && !already) {
@@ -59,7 +82,7 @@ export default function SeatsSelect() {
     }
 
     if (already) {
-      const next = selected.filter((s) => s !== id);
+      const next = selected.filter(s => s !== id);
       const nextType = next.length ? seatTypeFromId(next[0]) : null;
       setSelected(next);
       setLockedType(nextType);
@@ -82,95 +105,39 @@ export default function SeatsSelect() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>{movie.title}</Text>
         <Text style={{ color: colors.textMuted, marginTop: 4 }}>
           {showtime.date} · {showtime.startTime}
         </Text>
 
-        {/* Selection info */}
-        <View
-          style={{
-            marginTop: spacing.md,
-            padding: spacing.md,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: radius.md,
-            backgroundColor: colors.card,
-          }}
-        >
+        <View style={{ marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.card }}>
           <Text style={{ color: colors.text }}>
-            Needed: <Text style={{ fontWeight: "700", color: colors.text }}>{maxSelect}</Text> seat(s)
+            Needed: <Text style={{ fontWeight: "700" }}>{maxSelect}</Text> seat(s)
           </Text>
-          <Text style={{ marginTop: 4, color: colors.text }}>
-            Selected: <Text style={{ fontWeight: "700", color: colors.text }}>{selected.length}</Text>{" "}
-            {lockedType ? `· Type: ${lockedType}` : ""}
+          <Text style={{ color: colors.text, marginTop: 4 }}>
+            Selected: <Text style={{ fontWeight: "700" }}>{selected.length}</Text> {lockedType ? `· Type: ${lockedType}` : ""}
           </Text>
           {lockedType && (
-            <Text style={{ marginTop: 4, color: colors.text }}>
+            <Text style={{ color: colors.text, marginTop: 4 }}>
               Price per seat: {showtime.priceMap[lockedType]}
             </Text>
           )}
         </View>
 
-        {/* Grid */}
-        <View style={{ marginTop: spacing.md }}>
-          <SeatGrid
-            reserved={showtime.seatsReserved || []}
-            selected={selected}
-            maxSelect={maxSelect}
-            lockedType={lockedType}
-            onToggle={toggle}
-          />
-        </View>
+        <SeatGrid
+          reserved={showtime.seatsReserved || []}
+          selected={selected}
+          maxSelect={maxSelect}
+          lockedType={lockedType}
+          onToggle={toggle}
+        />
 
-        {/* Legend */}
-        <View
-          style={{
-            marginTop: spacing.md,
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: spacing.sm,
-          }}
-        >
-          {[
-            { label: "Classic (A–C)", color: colors.card },
-            { label: "Prime (D–F)", color: colors.card },
-            { label: "Superior (G–H)", color: colors.card },
-          ].map((x) => (
-            <View
-              key={x.label}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.pill,
-                paddingVertical: 6,
-                paddingHorizontal: 10,
-                backgroundColor: colors.card,
-              }}
-            >
-              <Text style={{ color: colors.textMuted }}>{x.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Summary + Proceed */}
-        <View
-          style={{
-            marginTop: spacing.md,
-            padding: spacing.md,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: radius.md,
-            backgroundColor: colors.card,
-          }}
-        >
+        <View style={{ marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.card }}>
           <Text style={{ fontWeight: "700", color: colors.text }}>Summary</Text>
-          <Text style={{ marginTop: 6, color: colors.text }}>
-            Seats: {selected.join(", ") || "-"}
-          </Text>
+          <Text style={{ marginTop: 6, color: colors.text }}>Seats: {selected.join(", ") || "-"}</Text>
           <Text style={{ marginTop: 4, color: colors.text }}>
-            Total: <Text style={{ fontWeight: "700", color: colors.text }}>{total}</Text>
+            Total: <Text style={{ fontWeight: "700" }}>{total}</Text>
           </Text>
 
           <TouchableOpacity
@@ -189,17 +156,14 @@ export default function SeatsSelect() {
               });
             }}
             style={{
-              marginTop: spacing.md,
+              marginTop: 12,
               padding: 14,
               borderRadius: radius.md,
-              backgroundColor:
-                selected.length === maxSelect && lockedType ? colors.success : "#666",
+              backgroundColor: selected.length === maxSelect && lockedType ? "#0a7" : "#aaa",
             }}
           >
-            <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>
-              {selected.length === maxSelect && lockedType
-                ? "Proceed to Checkout"
-                : "Select required seats"}
+            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
+              {selected.length === maxSelect && lockedType ? "Proceed to Checkout" : "Select required seats"}
             </Text>
           </TouchableOpacity>
         </View>

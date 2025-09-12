@@ -10,6 +10,12 @@ import { createBookingWithSeatLock } from "../../lib/bookingService";
 import type { Movie, Showtime } from "../../lib/types";
 import { colors, spacing, radius } from "../../lib/theme";
 
+function isPast(dateStr: string, timeStr: string) {
+  const now = new Date();
+  const dt = new Date(`${dateStr}T${timeStr}:00`);
+  return dt.getTime() < now.getTime();
+}
+
 export default function Checkout() {
   const { movieId, showtimeId, seatType, seats, count, total } = useLocalSearchParams<{
     movieId: string;
@@ -25,11 +31,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
 
   const parsedSeats = useMemo<string[]>(() => {
-    try {
-      return JSON.parse(String(seats || "[]"));
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(String(seats || "[]")); } catch { return []; }
   }, [seats]);
 
   useEffect(() => {
@@ -43,16 +45,19 @@ export default function Checkout() {
     })();
   }, [movieId, showtimeId]);
 
-  const canPay = !!(movie && showtime && parsedSeats.length && seatType && total);
+  const showtimeIsPast = !!(showtime && isPast(showtime.date, showtime.startTime));
+  const canPay = !!(movie && showtime && parsedSeats.length && seatType && total && !showtimeIsPast);
 
   const onPay = async () => {
-    if (!canPay) return;
+    if (!canPay) {
+      Alert.alert("Time has passed", "This showtime is no longer available.", [
+        { text: "OK", onPress: () => router.replace({ pathname: "/(user)/movie/[movieId]/select", params: { movieId: String(movieId) } }) },
+      ]);
+      return;
+    }
     try {
       setSubmitting(true);
-
       const uid = await getOrCreateUserId();
-
-      // Create booking + lock seats (transaction)
       await createBookingWithSeatLock({
         userId: uid,
         showtimeId: String(showtimeId),
@@ -87,7 +92,6 @@ export default function Checkout() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Top bar: Title + Home */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
           <Text style={{ fontSize: 22, fontWeight: "900", color: colors.text }}>Checkout</Text>
           <TouchableOpacity
@@ -98,21 +102,16 @@ export default function Checkout() {
           </TouchableOpacity>
         </View>
 
-        {/* Summary card */}
-        <View
-          style={{
-            padding: spacing.md,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: radius.lg,
-            backgroundColor: colors.card,
-            gap: 6,
-          }}
-        >
+        <View style={{ padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.card, gap: 6 }}>
           <Text style={{ fontWeight: "800", color: colors.text }}>{movie.title}</Text>
           <Text style={{ color: colors.textMuted, marginTop: 2 }}>
             {showtime.date} · {showtime.startTime}
           </Text>
+          {showtimeIsPast && (
+            <Text style={{ color: "#f66", marginTop: 4, fontWeight: "700" }}>
+              This time has already passed. Please go back and choose another slot.
+            </Text>
+          )}
           <Text style={{ marginTop: 8, color: colors.text }}>Seat type: <Text style={{ fontWeight: "700" }}>{seatType}</Text></Text>
           <Text style={{ color: colors.text }}>Seats: <Text style={{ fontWeight: "700" }}>{parsedSeats.join(", ")}</Text></Text>
           <Text style={{ color: colors.text }}>Seat count: <Text style={{ fontWeight: "700" }}>{count}</Text></Text>
@@ -121,7 +120,6 @@ export default function Checkout() {
           </Text>
         </View>
 
-        {/* Pay */}
         <TouchableOpacity
           disabled={!canPay || submitting}
           onPress={onPay}

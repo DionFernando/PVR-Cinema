@@ -1,3 +1,4 @@
+// app/(admin)/showtimes/new.tsx
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Button, Alert, ScrollView, Switch } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -29,8 +30,8 @@ export default function NewShowtime() {
   const [classic, setClassic] = useState("");
   const [prime, setPrime] = useState("");
   const [superior, setSuperior] = useState("");
-  const [repeat3, setRepeat3] = useState(true); // Today/Tomorrow/Day after
-  const [date, setDate] = useState(addDaysStr(0)); // used only when repeat3 = false
+  const [repeat7, setRepeat7] = useState(true); // default: create for a week
+  const [date, setDate] = useState(addDaysStr(0)); // used only when repeat7 = false
 
   useEffect(() => {
     (async () => {
@@ -52,8 +53,9 @@ export default function NewShowtime() {
         Superior: Number(superior),
       };
 
-      if (repeat3) {
-        for (const d of [0, 1, 2]) {
+      if (repeat7) {
+        // Create Today + next 6 days
+        for (let d = 0; d < 7; d++) {
           await createShowtime({
             movieId,
             date: addDaysStr(d),
@@ -63,13 +65,13 @@ export default function NewShowtime() {
         }
       } else {
         if (!date) {
-          Alert.alert("Missing", "Please set a date or enable Repeat 3 days.");
+          Alert.alert("Missing", "Please set a date or enable Repeat 7 days.");
           return;
         }
         await createShowtime({ movieId, date, startTime: time, priceMap: prices });
       }
 
-      Alert.alert("Saved", repeat3 ? "Showtimes created for 3 days." : "Showtime created.");
+      Alert.alert("Saved", repeat7 ? "Showtimes created for the next 7 days." : "Showtime created.");
       router.replace("/(admin)/showtimes");
     } catch (e: any) {
       Alert.alert("Error", e?.message ?? "Failed to save showtime");
@@ -111,11 +113,11 @@ export default function NewShowtime() {
         />
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: "#333" }}>Repeat daily for Today / Tomorrow / Day after</Text>
-          <Switch value={repeat3} onValueChange={setRepeat3} />
+          <Text style={{ color: "#333" }}>Repeat daily for the next 7 days</Text>
+          <Switch value={repeat7} onValueChange={setRepeat7} />
         </View>
 
-        {!repeat3 && (
+        {!repeat7 && (
           <>
             <Text style={{ color: "#333" }}>Date (YYYY-MM-DD)</Text>
             <TextInput

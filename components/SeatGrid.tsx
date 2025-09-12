@@ -51,9 +51,9 @@ export default function SeatGrid({ reserved, selected, maxSelect, lockedType, on
                   const isSelected = selectedSet.has(id);
                   const selectable = canSelect(id);
 
-                  const bg = isReserved ? "#ccc" : isSelected ? "#111" : "transparent";
-                  const color = isReserved ? "#777" : isSelected ? "#fff" : "#111";
-                  const border = isReserved ? "#bbb" : isSelected ? "#111" : "#999";
+                  const bg = isReserved ? "#ccc" : isSelected ? "#ffd000" : "transparent";
+                  const color = isReserved ? "#777" : isSelected ? "#4f4f4fff" : "#b0b0b0ff";
+                  const border = isReserved ? "#bbb" : isSelected ? "#ffd000" : "#999";
 
                   return (
                     <TouchableOpacity
@@ -91,7 +91,7 @@ export default function SeatGrid({ reserved, selected, maxSelect, lockedType, on
             height: 10,
             borderTopLeftRadius: 10,
             borderTopRightRadius: 10,
-            backgroundColor: "#222",
+            backgroundColor: "#ffffffff",
             width: "85%",
           }}
         />
