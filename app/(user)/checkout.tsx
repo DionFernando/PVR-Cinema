@@ -7,8 +7,9 @@ import { getMovie } from "../../lib/movieService";
 import { getShowtime } from "../../lib/showtimeService";
 import { getOrCreateUserId } from "../../lib/authUser";
 import { createBookingWithSeatLock } from "../../lib/bookingService";
-import type { Movie, Showtime } from "../../lib/types";
+import type { Movie, Showtime, SeatType } from "../../lib/types";
 import { colors, spacing, radius } from "../../lib/theme";
+import { seatTypeFromId } from "../../lib/seatConfig";
 
 function isPast(dateStr: string, timeStr: string) {
   const now = new Date();
@@ -20,7 +21,7 @@ export default function Checkout() {
   const { movieId, showtimeId, seatType, seats, count, total } = useLocalSearchParams<{
     movieId: string;
     showtimeId: string;
-    seatType: "Classic" | "Prime" | "Superior" | string;
+    seatType: SeatType | string;
     seats: string; // JSON array
     count: string;
     total: string;
@@ -34,6 +35,12 @@ export default function Checkout() {
     try { return JSON.parse(String(seats || "[]")); } catch { return []; }
   }, [seats]);
 
+  // Determine booking seatType again (trust, but verify)
+  const bookingSeatType: SeatType = useMemo(() => {
+    const types = new Set(parsedSeats.map(seatTypeFromId));
+    return (types.size === 1 ? (Array.from(types)[0] as SeatType) : "Mixed");
+  }, [parsedSeats]);
+
   useEffect(() => {
     (async () => {
       const [m, st] = await Promise.all([
@@ -46,7 +53,17 @@ export default function Checkout() {
   }, [movieId, showtimeId]);
 
   const showtimeIsPast = !!(showtime && isPast(showtime.date, showtime.startTime));
-  const canPay = !!(movie && showtime && parsedSeats.length && seatType && total && !showtimeIsPast);
+
+  // Recompute total from showtime prices + selected seats (avoid trusting URL)
+  const computedTotal = useMemo(() => {
+    if (!showtime) return 0;
+    return parsedSeats.reduce((sum, id) => {
+      const t = seatTypeFromId(id);
+      return sum + showtime.priceMap[t];
+    }, 0);
+  }, [parsedSeats, showtime]);
+
+  const canPay = !!(movie && showtime && parsedSeats.length && !showtimeIsPast);
 
   const onPay = async () => {
     if (!canPay) {
@@ -58,13 +75,14 @@ export default function Checkout() {
     try {
       setSubmitting(true);
       const uid = await getOrCreateUserId();
+
       await createBookingWithSeatLock({
         userId: uid,
         showtimeId: String(showtimeId),
         movieId: String(movieId),
         seats: parsedSeats,
-        seatType: seatType as any,
-        total: Number(total || "0"),
+        seatType: bookingSeatType,
+        total: computedTotal, // authoritative
       });
 
       Alert.alert("Success", "Booking confirmed! 🎉", [
@@ -89,6 +107,12 @@ export default function Checkout() {
     );
   }
 
+  // Small breakdown for UI
+  const counts = parsedSeats.reduce(
+    (acc, id) => { acc[seatTypeFromId(id)]++; return acc; },
+    { Classic: 0, Prime: 0, Superior: 0 } as Record<"Classic"|"Prime"|"Superior", number>
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
@@ -109,14 +133,20 @@ export default function Checkout() {
           </Text>
           {showtimeIsPast && (
             <Text style={{ color: "#f66", marginTop: 4, fontWeight: "700" }}>
-              This time has already passed. Please go back and choose another slot.
+              This time has already passed. Please choose another slot.
             </Text>
           )}
-          <Text style={{ marginTop: 8, color: colors.text }}>Seat type: <Text style={{ fontWeight: "700" }}>{seatType}</Text></Text>
+
+          <Text style={{ marginTop: 8, color: colors.text }}>
+            Seat type: <Text style={{ fontWeight: "700" }}>{bookingSeatType}</Text>
+          </Text>
           <Text style={{ color: colors.text }}>Seats: <Text style={{ fontWeight: "700" }}>{parsedSeats.join(", ")}</Text></Text>
-          <Text style={{ color: colors.text }}>Seat count: <Text style={{ fontWeight: "700" }}>{count}</Text></Text>
+          <Text style={{ color: colors.text }}>
+            Classic: {counts.Classic} × {showtime.priceMap.Classic}   ·   Prime: {counts.Prime} × {showtime.priceMap.Prime}   ·   Superior: {counts.Superior} × {showtime.priceMap.Superior}
+          </Text>
+
           <Text style={{ marginTop: 8, fontWeight: "900", color: colors.text }}>
-            Amount payable: {total}
+            Amount payable: {computedTotal}
           </Text>
         </View>
 

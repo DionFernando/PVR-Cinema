@@ -1,5 +1,6 @@
 // lib/types.ts
 import type { Timestamp, FieldValue } from "firebase/firestore";
+export type SeatType = "Classic" | "Prime" | "Superior" | "Mixed";
 
 export type Movie = {
   id: string;
@@ -28,13 +29,12 @@ export type Showtime = {
 export type Booking = {
   id: string;
   userId: string;
-  showtimeId: string;
   movieId: string;
+  showtimeId: string;
   seats: string[];
-  seatType: "Classic" | "Prime" | "Superior";
+  seatType: SeatType;           // allow "Mixed"
   total: number;
-  status: "paid" | "cancelled";
-  createdAt?: Timestamp | FieldValue;      // allow serverTimestamp()
+  createdAt?: any;              // Firestore timestamp
 };
 
 export type AppUser = {

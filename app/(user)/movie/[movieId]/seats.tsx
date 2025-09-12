@@ -27,7 +27,6 @@ export default function SeatsSelect() {
   const [showtime, setShowtime] = useState<Showtime | null>(null);
   const [movie, setMovie] = useState<Movie | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
-  const [lockedType, setLockedType] = useState<"Classic" | "Prime" | "Superior" | null>(null);
 
   const maxSelect = Number(seatCount || "1");
 
@@ -45,7 +44,6 @@ export default function SeatsSelect() {
           ]);
           return;
         }
-        // Hard block past showtime
         if (isPast(st.date, st.startTime)) {
           Alert.alert("Time has passed", "This showtime is no longer available.", [
             {
@@ -64,28 +62,33 @@ export default function SeatsSelect() {
     })();
   }, [movieId, showtimeId]);
 
-  const pricePerSeat = useMemo(() => {
-    if (!showtime || !lockedType) return 0;
-    return showtime.priceMap[lockedType];
-  }, [showtime, lockedType]);
+  // Per-category counts for summary & pricing
+  const counts = useMemo(() => {
+    const out = { Classic: 0, Prime: 0, Superior: 0 } as Record<"Classic"|"Prime"|"Superior", number>;
+    selected.forEach(id => { out[seatTypeFromId(id)]++; });
+    return out;
+  }, [selected]);
 
-  const total = pricePerSeat * selected.length;
+  const total = useMemo(() => {
+    if (!showtime) return 0;
+    return (
+      counts.Classic * showtime.priceMap.Classic +
+      counts.Prime * showtime.priceMap.Prime +
+      counts.Superior * showtime.priceMap.Superior
+    );
+  }, [counts, showtime]);
+
+  // Determine seatType for booking: "Mixed" if more than one category selected
+  const bookingSeatType = useMemo(() => {
+    const types = new Set(selected.map(seatTypeFromId));
+    if (types.size === 1) return Array.from(types)[0];
+    return "Mixed";
+  }, [selected]);
 
   const toggle = (id: string) => {
     const already = selected.includes(id);
-    const type = seatTypeFromId(id);
-    if (!lockedType) {
-      setLockedType(type);
-    } else if (lockedType !== type && !already) {
-      Alert.alert("One category", `Please choose only ${lockedType} seats for this booking.`);
-      return;
-    }
-
     if (already) {
-      const next = selected.filter(s => s !== id);
-      const nextType = next.length ? seatTypeFromId(next[0]) : null;
-      setSelected(next);
-      setLockedType(nextType);
+      setSelected(selected.filter(s => s !== id));
     } else {
       if (selected.length >= maxSelect) return;
       setSelected([...selected, id]);
@@ -111,28 +114,29 @@ export default function SeatsSelect() {
           {showtime.date} · {showtime.startTime}
         </Text>
 
+        {/* Selection info */}
         <View style={{ marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.card }}>
           <Text style={{ color: colors.text }}>
             Needed: <Text style={{ fontWeight: "700" }}>{maxSelect}</Text> seat(s)
           </Text>
           <Text style={{ color: colors.text, marginTop: 4 }}>
-            Selected: <Text style={{ fontWeight: "700" }}>{selected.length}</Text> {lockedType ? `· Type: ${lockedType}` : ""}
+            Selected: <Text style={{ fontWeight: "700" }}>{selected.length}</Text>
           </Text>
-          {lockedType && (
-            <Text style={{ color: colors.text, marginTop: 4 }}>
-              Price per seat: {showtime.priceMap[lockedType]}
-            </Text>
-          )}
+          <Text style={{ color: colors.text, marginTop: 6 }}>
+            Classic: {counts.Classic} × {showtime.priceMap.Classic}   ·   Prime: {counts.Prime} × {showtime.priceMap.Prime}   ·   Superior: {counts.Superior} × {showtime.priceMap.Superior}
+          </Text>
         </View>
 
+        {/* Grid — no lockedType now (free mixing) */}
         <SeatGrid
           reserved={showtime.seatsReserved || []}
           selected={selected}
           maxSelect={maxSelect}
-          lockedType={lockedType}
+          lockedType={null}
           onToggle={toggle}
         />
 
+        {/* Summary + Proceed */}
         <View style={{ marginTop: 12, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.card }}>
           <Text style={{ fontWeight: "700", color: colors.text }}>Summary</Text>
           <Text style={{ marginTop: 6, color: colors.text }}>Seats: {selected.join(", ") || "-"}</Text>
@@ -141,14 +145,14 @@ export default function SeatsSelect() {
           </Text>
 
           <TouchableOpacity
-            disabled={selected.length !== maxSelect || !lockedType}
+            disabled={selected.length !== maxSelect}
             onPress={() => {
               router.push({
                 pathname: "/(user)/checkout",
                 params: {
                   movieId: String(movieId),
                   showtimeId: String(showtimeId),
-                  seatType: lockedType!,
+                  seatType: bookingSeatType,               // "Classic" | "Prime" | "Superior" | "Mixed"
                   seats: JSON.stringify(selected),
                   count: String(maxSelect),
                   total: String(total),
@@ -159,11 +163,11 @@ export default function SeatsSelect() {
               marginTop: 12,
               padding: 14,
               borderRadius: radius.md,
-              backgroundColor: selected.length === maxSelect && lockedType ? "#0a7" : "#aaa",
+              backgroundColor: selected.length === maxSelect ? "#0a7" : "#aaa",
             }}
           >
             <Text style={{ textAlign: "center", color: "#fff", fontWeight: "700" }}>
-              {selected.length === maxSelect && lockedType ? "Proceed to Checkout" : "Select required seats"}
+              {selected.length === maxSelect ? "Proceed to Checkout" : "Select required seats"}
             </Text>
           </TouchableOpacity>
         </View>
