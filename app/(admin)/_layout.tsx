@@ -1,9 +1,10 @@
-import { useEffect } from "react";
-import { View, ActivityIndicator, Text } from "react-native";
+// app/(admin)/_layout.tsx
 import { Stack, router } from "expo-router";
+import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../../store/AuthProvider";
+import { View, ActivityIndicator } from "react-native";
 
 export default function AdminLayout() {
   const { fbUser, profile, loading } = useAuth();
@@ -19,22 +20,21 @@ export default function AdminLayout() {
     }
   }, [loading, fbUser, profile]);
 
+  if (loading) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f6f7f9" }}>
+          <ActivityIndicator />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      {loading ? (
-        <View style={{ flex: 1, backgroundColor: "#f6f7f9", alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator />
-          <Text style={{ color: "#222", marginTop: 8 }}>Loading…</Text>
-        </View>
-      ) : (
-        <Stack
-          screenOptions={{
-            headerShown: false,                // ← no stack header
-            contentStyle: { backgroundColor: "#f6f7f9" }, // light admin bg
-          }}
-        />
-      )}
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#f6f7f9" } }} />
     </SafeAreaProvider>
   );
 }
