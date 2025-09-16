@@ -7,16 +7,16 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pvrcinema",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
+    "newArchEnabled": false,
+    "ios": { "supportsTablet": true },
     "android": {
+      "package": "com.dionfernando.pvrcinema",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": ["CAMERA"]
     },
     "web": {
       "bundler": "metro",
@@ -25,6 +25,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-barcode-scanner",
       [
         "expo-splash-screen",
         {
@@ -33,11 +34,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-       ["expo-camera", { "cameraPermission": "Allow PVR Cinemas to scan ticket QR codes." }]
+      ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    "experiments": { "typedRoutes": true },
+    "extra": {
+      "router": {},
+      "eas": { "projectId": "e873533d-cc49-41fd-8079-9820bd469743" }
+    },
+    "owner": "dion_fernando"
   }
 }
