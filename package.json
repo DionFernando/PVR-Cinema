@@ -19,6 +19,7 @@
     "@react-navigation/native": "^7.1.6",
     "expo": "^54.0.2",
     "expo-blur": "~15.0.7",
+    "expo-camera": "~17.0.7",
     "expo-constants": "~18.0.8",
     "expo-font": "~14.0.8",
     "expo-haptics": "~15.0.7",
@@ -44,12 +45,12 @@
     "react-native-svg": "15.12.1",
     "react-native-toast-message": "^2.3.3",
     "react-native-web": "^0.21.0",
-    "react-native-webview": "13.15.0",
-    "expo-camera": "~17.0.7"
+    "react-native-webview": "13.15.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "^19.1.12",
+    "eas-cli": "^16.19.3",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
     "typescript": "~5.8.3"
