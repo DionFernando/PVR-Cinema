@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 function formatColombo(now: Date) {
   try {
     return new Intl.DateTimeFormat("en-LK", {
-      dateStyle: "full",
+      dateStyle: "full",  
       timeStyle: "medium",
       timeZone: "Asia/Colombo",
     }).format(now);
